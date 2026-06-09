@@ -7,12 +7,22 @@ import {
 function buildOverpassQuery(bbox) {
   const { south, west, north, east } = bbox;
 
-  // For the first prototype, we are not searching every possible place.
-  // We picked places that are most useful for walking during extreme heat:
-  // water, indoor cooling, transit access, and parks.
+  // We search shade-related map data first.
+  // Support places are still loaded, but they are not the main route target.
   return `
     [out:json][timeout:15];
     (
+      nwr["natural"="tree_row"](${south},${west},${north},${east});
+      nwr["natural"="tree"](${south},${west},${north},${east});
+      nwr["natural"="wood"](${south},${west},${north},${east});
+      nwr["landuse"="forest"](${south},${west},${north},${east});
+      nwr["leisure"="park"](${south},${west},${north},${east});
+      nwr["tree_lined"="yes"](${south},${west},${north},${east});
+      nwr["covered"="yes"](${south},${west},${north},${east});
+      nwr["covered"="arcade"](${south},${west},${north},${east});
+      nwr["covered"="colonnade"](${south},${west},${north},${east});
+
+      nwr["amenity"="shelter"](${south},${west},${north},${east});
       nwr["shop"="convenience"](${south},${west},${north},${east});
       nwr["shop"="supermarket"](${south},${west},${north},${east});
       nwr["shop"="mall"](${south},${west},${north},${east});
@@ -25,15 +35,13 @@ function buildOverpassQuery(bbox) {
       nwr["railway"="subway_entrance"](${south},${west},${north},${east});
       nwr["railway"="station"](${south},${west},${north},${east});
       nwr["public_transport"="station"](${south},${west},${north},${east});
-      nwr["leisure"="park"](${south},${west},${north},${east});
     );
-    out center 40;
+    out center 60;
   `;
 }
 
 function getElementPosition(element) {
-  // OSM nodes have lat/lon directly.
-  // Ways and relations usually need center coordinates from the Overpass result.
+  // Nodes already have lat/lon. Ways and relations use center from Overpass.
   if (element.lat && element.lon) {
     return [element.lat, element.lon];
   }
@@ -50,8 +58,6 @@ function convertElementToPlace(element, areaId) {
   const type = classifyPlace(tags);
   const position = getElementPosition(element);
 
-  // If a place has no usable position or does not match our heat categories,
-  // we skip it so the map does not get too crowded.
   if (!position || type === "other") {
     return null;
   }
@@ -65,6 +71,19 @@ function convertElementToPlace(element, areaId) {
     description: getPlaceDescription(type),
     source: "OpenStreetMap",
   };
+}
+
+function sortShadeFirst(placeA, placeB) {
+  const shadeWeight = {
+    shade_path: 0,
+    shade_area: 1,
+    support_shelter: 2,
+    support_water: 3,
+    support_cooling: 4,
+    support_transit: 5,
+  };
+
+  return (shadeWeight[placeA.type] ?? 10) - (shadeWeight[placeB.type] ?? 10);
 }
 
 export async function fetchCoolingPlaces(area) {
@@ -81,9 +100,9 @@ export async function fetchCoolingPlaces(area) {
 
   const data = await response.json();
 
-  // We limit the number of markers because too many pins make the demo hard to read.
   return data.elements
     .map((element) => convertElementToPlace(element, area.id))
     .filter(Boolean)
-    .slice(0, 30);
+    .sort(sortShadeFirst)
+    .slice(0, 60);
 }

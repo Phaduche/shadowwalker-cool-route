@@ -1,14 +1,28 @@
 export function classifyPlace(tags = {}) {
-  // We only need a few categories for the first demo:
-  // water, AC, shade, and underground access.
-  // Keeping the categories small helps us test the map faster.
+  // Main idea: ShadowWalker should follow shade first.
+  // Other places are shown as nearby support, not as the main route target.
 
   if (
-    tags.railway === "subway_entrance" ||
-    tags.railway === "station" ||
-    tags.public_transport === "station"
+    tags.covered === "yes" ||
+    tags.covered === "arcade" ||
+    tags.covered === "colonnade" ||
+    tags.tree_lined === "yes" ||
+    tags.natural === "tree_row"
   ) {
-    return "underground";
+    return "shade_path";
+  }
+
+  if (
+    tags.natural === "tree" ||
+    tags.leisure === "park" ||
+    tags.landuse === "forest" ||
+    tags.natural === "wood"
+  ) {
+    return "shade_area";
+  }
+
+  if (tags.amenity === "shelter") {
+    return "support_shelter";
   }
 
   if (
@@ -17,7 +31,7 @@ export function classifyPlace(tags = {}) {
     tags.amenity === "drinking_water" ||
     tags.amenity === "pharmacy"
   ) {
-    return "water";
+    return "support_water";
   }
 
   if (
@@ -27,19 +41,30 @@ export function classifyPlace(tags = {}) {
     tags.amenity === "community_centre" ||
     tags.shop === "mall"
   ) {
-    return "ac";
+    return "support_cooling";
   }
 
-  if (tags.leisure === "park") {
-    return "shade";
+  if (
+    tags.railway === "subway_entrance" ||
+    tags.railway === "station" ||
+    tags.public_transport === "station"
+  ) {
+    return "support_transit";
   }
 
   return "other";
 }
 
+export function isShadePlace(type) {
+  return type === "shade_path" || type === "shade_area";
+}
+
+export function isSupportPlace(type) {
+  return type.startsWith("support_");
+}
+
 export function getPlaceName(tags = {}) {
-  // Some OpenStreetMap places do not have a clean name.
-  // We try name first, then use brand/operator/type as a backup.
+  // OSM data is not always named cleanly, so we fall back to the tag type.
   return (
     tags.name ||
     tags.brand ||
@@ -47,28 +72,46 @@ export function getPlaceName(tags = {}) {
     tags.shop ||
     tags.amenity ||
     tags.railway ||
+    tags.natural ||
     tags.leisure ||
     "Unnamed place"
   );
 }
 
 export function getPlaceDescription(type) {
-  // These descriptions are short because they will appear inside map popups.
-  if (type === "shade") {
-    return "Possible shade or rest area that may reduce direct sunlight exposure.";
+  if (type === "shade_path") {
+    return "Possible shaded walking segment such as a tree-lined or covered path.";
   }
 
-  if (type === "underground") {
-    return "Transit or underground access point that may help avoid direct sunlight.";
+  if (type === "shade_area") {
+    return "Possible shaded area such as a park, tree, or wooded space.";
   }
 
-  if (type === "ac") {
-    return "Possible air-conditioned indoor place for a short cooling break.";
+  if (type === "support_shelter") {
+    return "Nearby shelter that can be used as a support point during extreme heat.";
   }
 
-  if (type === "water") {
-    return "Possible place to buy or access water during hot weather.";
+  if (type === "support_water") {
+    return "Nearby place where water may be available or purchased.";
+  }
+
+  if (type === "support_cooling") {
+    return "Nearby indoor cooling place such as a cafe, bank, or library.";
+  }
+
+  if (type === "support_transit") {
+    return "Nearby transit or underground access point.";
   }
 
   return "Nearby place from OpenStreetMap data.";
+}
+
+export function getPlaceTypeLabel(type) {
+  if (type === "shade_path") return "Shade path";
+  if (type === "shade_area") return "Shade area";
+  if (type === "support_shelter") return "Shelter";
+  if (type === "support_water") return "Water";
+  if (type === "support_cooling") return "Cooling";
+  if (type === "support_transit") return "Transit";
+  return "Place";
 }
