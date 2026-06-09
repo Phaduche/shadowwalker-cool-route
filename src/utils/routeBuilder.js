@@ -1,13 +1,12 @@
-import { isShadePlace, isSupportPlace } from "./placeClassifier";
+import { isShadePlace, isSupportPlace, isWalkPath } from "./placeClassifier";
 
 function toRadians(value) {
   return (value * Math.PI) / 180;
 }
 
 function getDistanceMeters(pointA, pointB) {
-  // For now, I am using straight-line distance between map points.
-  // It is not a real road navigation distance yet, but it is good enough
-  // to compare the fast route and the shade route in this prototype.
+  // This is straight-line distance, not road distance.
+  // For this prototype, I use it only to compare nearby route hints.
   const earthRadius = 6371000;
 
   const lat1 = toRadians(pointA[0]);
@@ -37,7 +36,19 @@ function getRouteDistance(points) {
   return Math.round(total);
 }
 
-function sortByShadeRouteValue(places, currentPoint, endPoint) {
+function getClosestWalkPathDistance(place, walkPlaces) {
+  if (walkPlaces.length === 0) {
+    return 0;
+  }
+
+  const distances = walkPlaces.map((walkPlace) => {
+    return getDistanceMeters(place.position, walkPlace.position);
+  });
+
+  return Math.min(...distances);
+}
+
+function sortByShadeRouteValue(places, currentPoint, endPoint, walkPlaces) {
   return [...places].sort((placeA, placeB) => {
     const placeADistanceFromNow = getDistanceMeters(currentPoint, placeA.position);
     const placeBDistanceFromNow = getDistanceMeters(currentPoint, placeB.position);
@@ -45,14 +56,25 @@ function sortByShadeRouteValue(places, currentPoint, endPoint) {
     const placeADistanceToEnd = getDistanceMeters(placeA.position, endPoint);
     const placeBDistanceToEnd = getDistanceMeters(placeB.position, endPoint);
 
-    // shade_path is closer to our main idea because it sounds more like
-    // an actual shaded walking segment. shade_area is still useful, but it
-    // can be a park or a tree area near the route instead of a walkable line.
+    const placeAWalkDistance = getClosestWalkPathDistance(placeA, walkPlaces);
+    const placeBWalkDistance = getClosestWalkPathDistance(placeB, walkPlaces);
+
+    // shade_path matters, but it also needs to be close to a walkable path.
+    // This keeps the route from jumping to a tree or park that is not actually useful for walking.
     const placeABonus = placeA.type === "shade_path" ? -180 : 0;
     const placeBBonus = placeB.type === "shade_path" ? -180 : 0;
 
-    const scoreA = placeADistanceFromNow * 0.65 + placeADistanceToEnd * 0.35 + placeABonus;
-    const scoreB = placeBDistanceFromNow * 0.65 + placeBDistanceToEnd * 0.35 + placeBBonus;
+    const scoreA =
+      placeADistanceFromNow * 0.55 +
+      placeADistanceToEnd * 0.25 +
+      placeAWalkDistance * 0.2 +
+      placeABonus;
+
+    const scoreB =
+      placeBDistanceFromNow * 0.55 +
+      placeBDistanceToEnd * 0.25 +
+      placeBWalkDistance * 0.2 +
+      placeBBonus;
 
     return scoreA - scoreB;
   });
@@ -74,14 +96,14 @@ function removeDuplicatePlaces(places) {
 
 function pickShadeStops(area, places) {
   const shadePlaces = places.filter((place) => isShadePlace(place.type));
+  const walkPlaces = places.filter((place) => isWalkPath(place.type));
 
   if (shadePlaces.length === 0) {
     return [];
   }
 
-  // I am only picking a few shade points because the map should stay readable.
-  // If we connect every tree or park from OSM, the route line will look random
-  // instead of looking like a usable walking route.
+  // I am only picking a few shade points so the route stays readable.
+  // The point is not to connect every tree. The point is to suggest a walkable shade route.
   const maxStops = 3;
   const selectedStops = [];
 
@@ -99,7 +121,8 @@ function pickShadeStops(area, places) {
     const sortedPlaces = sortByShadeRouteValue(
       remainingPlaces,
       currentPoint,
-      area.end.position
+      area.end.position,
+      walkPlaces
     );
 
     const nextStop = sortedPlaces[0];
@@ -111,20 +134,19 @@ function pickShadeStops(area, places) {
   return removeDuplicatePlaces(selectedStops);
 }
 
-function estimateShadeCoverage(routeType, shadeStops) {
-  // This is an estimated shade coverage score for the demo.
-  // I am not saying this is exact satellite-level shade measurement.
-  // The idea is to give higher coverage when the route follows shade-related OSM data.
+function estimateShadeCoverage(routeType, shadeStops, walkPlaces) {
+  // This is an estimated score for the demo, not exact shade measurement.
+  // I give a small boost when there is walk_path data because the shade route is more believable.
 
   if (routeType === "fast") {
     return 18;
   }
 
   if (shadeStops.length === 0) {
-    return 22;
+    return walkPlaces.length > 0 ? 26 : 22;
   }
 
-  let coverage = 30;
+  let coverage = walkPlaces.length > 0 ? 34 : 30;
 
   for (const stop of shadeStops) {
     if (stop.type === "shade_path") {
@@ -143,14 +165,17 @@ function countStopsByType(stops, type) {
   return stops.filter((stop) => stop.type === type).length;
 }
 
+export function getWalkPlaces(places) {
+  return places.filter((place) => isWalkPath(place.type));
+}
+
 export function getShadePlaces(places) {
   return places.filter((place) => isShadePlace(place.type));
 }
 
 export function getSupportPlaces(places) {
-  // These places are useful, but they should not control the main route.
-  // ShadowWalker should still feel like a shade-following navigator,
-  // not a route that just jumps between cafes and stores.
+  // These are still support info only.
+  // The main route should not become a cafe-to-store route.
   return places.filter((place) => isSupportPlace(place.type)).slice(0, 12);
 }
 
@@ -158,6 +183,7 @@ export function buildRoutes(area, places) {
   const start = area.start.position;
   const end = area.end.position;
 
+  const walkPlaces = getWalkPlaces(places);
   const shadeStops = pickShadeStops(area, places);
 
   const fastPoints = [start, end];
@@ -167,12 +193,9 @@ export function buildRoutes(area, places) {
     end,
   ];
 
-  const fastShadeCoverage = estimateShadeCoverage("fast", []);
-  const shadeRouteCoverage = estimateShadeCoverage("shade", shadeStops);
+  const fastShadeCoverage = estimateShadeCoverage("fast", [], walkPlaces);
+  const shadeRouteCoverage = estimateShadeCoverage("shade", shadeStops, walkPlaces);
 
-  // Fast Route is only a baseline.
-  // I kept it here so users can compare the shortest-looking path
-  // with the shade-focused path.
   const fastRoute = {
     id: `${area.id}-fast`,
     areaId: area.id,
@@ -185,11 +208,9 @@ export function buildRoutes(area, places) {
     shadePointCount: 0,
     shadePathCount: 0,
     shadeAreaCount: 0,
+    walkPathCount: walkPlaces.length,
   };
 
-  // Shade Route is the actual ShadowWalker route.
-  // It uses shade_path and shade_area as route hints, while support places
-  // like water, cafes, shelters, and subway entrances stay separate.
   const shadeRoute = {
     id: `${area.id}-shade`,
     areaId: area.id,
@@ -202,6 +223,7 @@ export function buildRoutes(area, places) {
     shadePointCount: shadeStops.length,
     shadePathCount: countStopsByType(shadeStops, "shade_path"),
     shadeAreaCount: countStopsByType(shadeStops, "shade_area"),
+    walkPathCount: walkPlaces.length,
   };
 
   return [fastRoute, shadeRoute];

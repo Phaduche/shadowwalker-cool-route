@@ -7,11 +7,17 @@ import {
 function buildOverpassQuery(bbox) {
   const { south, west, north, east } = bbox;
 
-  // We search shade-related map data first.
-  // Support places are still loaded, but they are not the main route target.
+  // The route should be shade-first, but still walkable.
+  // So I load pedestrian path data together with shade-related map data.
   return `
     [out:json][timeout:15];
     (
+      nwr["highway"="footway"](${south},${west},${north},${east});
+      nwr["highway"="pedestrian"](${south},${west},${north},${east});
+      nwr["highway"="path"](${south},${west},${north},${east});
+      nwr["footway"="sidewalk"](${south},${west},${north},${east});
+      nwr["sidewalk"](${south},${west},${north},${east});
+
       nwr["natural"="tree_row"](${south},${west},${north},${east});
       nwr["natural"="tree"](${south},${west},${north},${east});
       nwr["natural"="wood"](${south},${west},${north},${east});
@@ -36,12 +42,12 @@ function buildOverpassQuery(bbox) {
       nwr["railway"="station"](${south},${west},${north},${east});
       nwr["public_transport"="station"](${south},${west},${north},${east});
     );
-    out center 60;
+    out center 80;
   `;
 }
 
 function getElementPosition(element) {
-  // Nodes already have lat/lon. Ways and relations use center from Overpass.
+  // Nodes have lat/lon directly. Ways and relations usually need the center point.
   if (element.lat && element.lon) {
     return [element.lat, element.lon];
   }
@@ -73,17 +79,18 @@ function convertElementToPlace(element, areaId) {
   };
 }
 
-function sortShadeFirst(placeA, placeB) {
-  const shadeWeight = {
-    shade_path: 0,
-    shade_area: 1,
-    support_shelter: 2,
-    support_water: 3,
-    support_cooling: 4,
-    support_transit: 5,
+function sortPlaces(placeA, placeB) {
+  const typeWeight = {
+    walk_path: 0,
+    shade_path: 1,
+    shade_area: 2,
+    support_shelter: 3,
+    support_water: 4,
+    support_cooling: 5,
+    support_transit: 6,
   };
 
-  return (shadeWeight[placeA.type] ?? 10) - (shadeWeight[placeB.type] ?? 10);
+  return (typeWeight[placeA.type] ?? 10) - (typeWeight[placeB.type] ?? 10);
 }
 
 export async function fetchCoolingPlaces(area) {
@@ -103,6 +110,6 @@ export async function fetchCoolingPlaces(area) {
   return data.elements
     .map((element) => convertElementToPlace(element, area.id))
     .filter(Boolean)
-    .sort(sortShadeFirst)
-    .slice(0, 60);
+    .sort(sortPlaces)
+    .slice(0, 80);
 }

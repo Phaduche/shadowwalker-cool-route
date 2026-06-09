@@ -1,6 +1,6 @@
 export function classifyPlace(tags = {}) {
-  // Main idea: ShadowWalker should follow shade first.
-  // Other places are shown as nearby support, not as the main route target.
+  // ShadowWalker should not connect random shade points.
+  // First, we separate walkable paths from shade data so the route can stay close to sidewalks or pedestrian paths.
 
   if (
     tags.covered === "yes" ||
@@ -10,6 +10,19 @@ export function classifyPlace(tags = {}) {
     tags.natural === "tree_row"
   ) {
     return "shade_path";
+  }
+
+  if (
+    tags.highway === "footway" ||
+    tags.highway === "pedestrian" ||
+    tags.highway === "path" ||
+    tags.footway === "sidewalk" ||
+    tags.sidewalk === "yes" ||
+    tags.sidewalk === "both" ||
+    tags.sidewalk === "left" ||
+    tags.sidewalk === "right"
+  ) {
+    return "walk_path";
   }
 
   if (
@@ -55,6 +68,10 @@ export function classifyPlace(tags = {}) {
   return "other";
 }
 
+export function isWalkPath(type) {
+  return type === "walk_path";
+}
+
 export function isShadePlace(type) {
   return type === "shade_path" || type === "shade_area";
 }
@@ -64,13 +81,14 @@ export function isSupportPlace(type) {
 }
 
 export function getPlaceName(tags = {}) {
-  // OSM data is not always named cleanly, so we fall back to the tag type.
+  // OSM names are not always clean, so this gives us a readable fallback label.
   return (
     tags.name ||
     tags.brand ||
     tags.operator ||
     tags.shop ||
     tags.amenity ||
+    tags.highway ||
     tags.railway ||
     tags.natural ||
     tags.leisure ||
@@ -79,6 +97,10 @@ export function getPlaceName(tags = {}) {
 }
 
 export function getPlaceDescription(type) {
+  if (type === "walk_path") {
+    return "Pedestrian path or sidewalk data used to keep the shade route walkable.";
+  }
+
   if (type === "shade_path") {
     return "Possible shaded walking segment such as a tree-lined or covered path.";
   }
@@ -107,6 +129,7 @@ export function getPlaceDescription(type) {
 }
 
 export function getPlaceTypeLabel(type) {
+  if (type === "walk_path") return "Walk path";
   if (type === "shade_path") return "Shade path";
   if (type === "shade_area") return "Shade area";
   if (type === "support_shelter") return "Shelter";
