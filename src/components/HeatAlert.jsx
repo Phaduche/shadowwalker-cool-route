@@ -5,7 +5,8 @@ export default function HeatAlert({
   currentLat = 37.4975,
   currentLng = 127.0270,
 }) {
-  const { seconds, isOutdoor } = useHeatExposure(currentLat, currentLng);
+  const { seconds, isOutdoor, triggerTestNotification } =
+    useHeatExposure(currentLat, currentLng);
 
   // show time in prettier format (hh:mm:ss)
   const formatTime = (totalSeconds) => {
@@ -51,6 +52,13 @@ export default function HeatAlert({
           {formatTime(seconds)}
         </span>
       </div>
+
+      <button
+        onClick={triggerTestNotification}
+        className="mt-4 w-full bg-black text-white font-bold py-2 rounded-xl"
+      >
+        Test Notification (Demo)
+      </button>
 
       <p className="text-xs text-gray-400 leading-relaxed">
         {isOutdoor

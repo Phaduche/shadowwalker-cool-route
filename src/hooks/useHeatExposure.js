@@ -22,6 +22,17 @@ export function useHeatExposure(currentLat, currentLng) {
   const [seconds, setSeconds] = useState(0); // time passed(seconds)
   const [isOutdoor, setIsOutdoor] = useState(true); // user status (outdoor/indoor)
 
+// tis for testing without waiting ;)
+const triggerTestNotification = () => {
+  if (Notification.permission === "granted") {
+    new Notification("Test Alert", {
+      body: "This is a demo notification for testing (1-hour alert simulation).",
+    });
+  } else {
+    console.log("Notification permission not granted");
+  }
+};
+
 //ask for notification permission
   useEffect(() => {
     if (Notification.permission === "default") {
@@ -83,5 +94,6 @@ export function useHeatExposure(currentLat, currentLng) {
   return {
     seconds,
     isOutdoor,
+    triggerTestNotification,
   };
 }
