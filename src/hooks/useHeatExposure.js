@@ -21,7 +21,13 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
 export function useHeatExposure(currentLat, currentLng) {
   const [seconds, setSeconds] = useState(0); // time passed(seconds)
   const [isOutdoor, setIsOutdoor] = useState(true); // user status (outdoor/indoor)
-  const [isModalOpen, setIsModalOpen] = useState(false); // popup status
+
+//ask for notification permission
+  useEffect(() => {
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   // calculate distance whenever user moves
   useEffect(() => {
@@ -35,7 +41,7 @@ export function useHeatExposure(currentLat, currentLng) {
         shelter.lng
       );
 
-      // within 15 meters (demo logic)
+      // for now ive set inside as being within 15 meters of a shelter. could chage later (demo logic)
       if (distance <= 15) {
         isInside = true;
       }
@@ -51,13 +57,20 @@ export function useHeatExposure(currentLat, currentLng) {
     if (isOutdoor) {
       timer = setInterval(() => {
         setSeconds((prev) => {
-          const nextSeconds = prev + 1;
+          const next = prev + 1;
 
-          if (nextSeconds % 3600 === 0) {
-            setIsModalOpen(true);
+          const currentHour = Math.floor(next / 3600);
+
+          if (
+            next % 3600 === 0 &&
+            Notification.permission === "granted"
+          ) {
+            new Notification("Time for water and rest!", {
+              body: `You've been exposed to heat for ${currentHour} hour(s). Take a break in the shade!`,
+            });
           }
 
-          return nextSeconds;
+          return next;
         });
       }, 1000);
     } else {
@@ -70,7 +83,5 @@ export function useHeatExposure(currentLat, currentLng) {
   return {
     seconds,
     isOutdoor,
-    isModalOpen,
-    setIsModalOpen,
   };
 }

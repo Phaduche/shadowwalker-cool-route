@@ -5,8 +5,7 @@ export default function HeatAlert({
   currentLat = 37.4975,
   currentLng = 127.0270,
 }) {
-  const { seconds, isOutdoor, isModalOpen, setIsModalOpen } =
-    useHeatExposure(currentLat, currentLng);
+  const { seconds, isOutdoor } = useHeatExposure(currentLat, currentLng);
 
   // show time in prettier format (hh:mm:ss)
   const formatTime = (totalSeconds) => {
@@ -58,29 +57,6 @@ export default function HeatAlert({
           ? "Currently exposed to high heat. Water intake alert triggers every 1 hour continuously."
           : "Inside an approved cooling area. Danger timer has been reset automatically."}
       </p>
-
-      {/* alert modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-2 border-red-500">
-            <h3 className="text-2xl font-extrabold text-red-600 mb-2">
-              time for water!
-            </h3>
-
-            <p className="text-gray-700 text-sm mb-6">
-              outdoor exposure for {Math.floor(seconds / 3600)} hours. <br />
-              please take a break at the nearest shade!
-            </p>
-
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
