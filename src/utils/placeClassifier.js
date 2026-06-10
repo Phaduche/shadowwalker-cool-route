@@ -6,7 +6,7 @@ export function classifyPlace(tags = {}) {
     tags.covered === "yes" ||
     tags.covered === "arcade" ||
     tags.covered === "colonnade" ||
-    tags.tree_lined === "yes" ||
+    (tags.tree_lined && tags.tree_lined !== "no") ||
     tags.natural === "tree_row"
   ) {
     return "shade_path";
@@ -27,9 +27,13 @@ export function classifyPlace(tags = {}) {
 
   if (
     tags.natural === "tree" ||
+    tags.natural === "wood" ||
+    tags.natural === "scrub" ||
     tags.leisure === "park" ||
+    tags.leisure === "garden" ||
     tags.landuse === "forest" ||
-    tags.natural === "wood"
+    tags.landuse === "grass" ||
+    tags.landuse === "meadow"
   ) {
     return "shade_area";
   }

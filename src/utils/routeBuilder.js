@@ -6,7 +6,7 @@
 //   Shade places from Overpass are used ONLY to score the routes — never to build geometry.
 
 import { isShadePlace, isSupportPlace, isWalkPath } from "./placeClassifier";
-import { calcShadeScore } from "./shadeScorer";
+import { calcShadeScore, getDistanceToShadePlace } from "./shadeScorer";
 
 function toRad(v) {
   return (v * Math.PI) / 180;
@@ -83,7 +83,7 @@ export function buildRoutes(area, engineResult, osmPlaces) {
   // Count shade-place types near this route (within 60m)
   const NEAR = 60;
   const nearShade = shadePlaces.filter((p) =>
-    shadePts.some((pt) => haversine(pt, p.position) <= NEAR),
+    shadePts.some((pt) => getDistanceToShadePlace(pt, p) <= NEAR),
   );
   const shadePathCount = nearShade.filter(
     (p) => p.type === "shade_path",
