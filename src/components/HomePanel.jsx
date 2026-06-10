@@ -7,11 +7,11 @@ export default function HomePanel({ temp, status, triggerMockAlert }) {
       
       {/* prettier header :) */}
       <div className="space-y-1">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight uppercase">
-          Cool-Route
+        <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+          ShadowWalker
         </h1>
-        <p className="text-xs font-semibold text-green-500 uppercase tracking-widest">
-          ShadowWalker Heat & Shade Support
+        <p className="text-xs font-semibold text-green-500 tracking-widest">
+          Find Your Coolest Route
         </p>
       </div>
 
@@ -26,11 +26,8 @@ export default function HomePanel({ temp, status, triggerMockAlert }) {
       {/* demo controller */}
       <div className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-4 text-left">
         <div className="flex flex-col">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+          <p className="text-[15px] font-black text-gray-500 uppercase tracking-wider">
             Demo Controller
-          </p>
-          <p className="text-xs text-gray-500 font-medium">
-            Test simulation for government guidelines
           </p>
         </div>
         

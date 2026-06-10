@@ -27,10 +27,10 @@ function App() {
       {/* nav bar */}
       <nav className="fixed bottom-0 left-0 right-0 h-[65px] bg-white border-t border-gray-200 flex items-center justify-around px-4 z-50 md:sticky md:top-0 md:bottom-auto md:h-[60px] md:border-t-0 md:border-b md:justify-between md:px-8 shadow-sm">
         <div 
-          className="hidden md:block font-black text-lg tracking-tight text-green-600 uppercase cursor-pointer hover:opacity-80 transition-all"
+          className="hidden md:block font-black text-lg tracking-tight text-green-600 cursor-pointer hover:opacity-80 transition-all"
           onClick={() => setCurrentPage("main")}
         >
-          Shade Route
+          ShadowWalker
         </div>
         
         <div className="flex w-full md:w-auto gap-2 justify-around md:justify-end">

@@ -23,7 +23,7 @@ export default function HeatAlert({
     <div className="p-6 bg-white rounded-2xl shadow-md m-4 border border-gray-100">
       {/* User Status Toggle */}
       <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
-        <span className="text-xs font-bold text-gray-400">
+        <span className="text-15px font-bold text-gray-500">
           GPS Live Location Tracking
         </span>
 
@@ -55,7 +55,7 @@ export default function HeatAlert({
 
       <button
         onClick={triggerTestNotification}
-        className="mt-4 w-full bg-black text-white font-bold py-2 rounded-xl"
+        className="mt-4 w-full bg-green-600 text-white font-bold py-2 rounded-xl"
       >
         Test Notification (Demo)
       </button>
