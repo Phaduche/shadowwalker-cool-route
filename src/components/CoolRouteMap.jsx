@@ -1,4 +1,10 @@
-import { MapContainer, Marker, Popup, Polyline, TileLayer } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  Polyline,
+  TileLayer,
+} from "react-leaflet";
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -63,7 +69,8 @@ function CoolRouteMap({ area, routes, shadePlaces, supportPlaces }) {
       </div>
 
       <p className="map-description">
-        The green route follows shade-related map data, while the red dashed route shows a direct baseline.
+        The green route follows shade-related map data, while the red dashed
+        route shows a direct baseline.
       </p>
 
       <MapContainer

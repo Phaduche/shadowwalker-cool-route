@@ -76,7 +76,7 @@ async function fetchOSRM(start, end) {
   // OSRM은 좌표 순서가 lng,lat라서 여기서 다시 뒤집어줘야 함.
   const coords = `${start[1]},${start[0]};${end[1]},${end[0]}`;
   const url =
-    `http://router.project-osrm.org/route/v1/foot/${coords}` +
+    `https://router.project-osrm.org/route/v1/foot/${coords}` +
     `?overview=full&geometries=geojson&alternatives=true`;
 
   const res = await withTimeout(fetch(url), TIMEOUT_MS);
