@@ -1,61 +1,58 @@
+// Fetches real OSM data for shade analysis and support places.
+// This service is ONLY for scoring and map decoration — NOT for route geometry.
+// Route geometry comes from routingService.js.
+
 import {
   classifyPlace,
   getPlaceDescription,
   getPlaceName,
 } from "../utils/placeClassifier";
 
+// Two Overpass mirrors for resilience
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
 function buildOverpassQuery(bbox) {
   const { south, west, north, east } = bbox;
 
-  // The route should be shade-first, but still walkable.
-  // So I load pedestrian path data together with shade-related map data.
+  // Shade data: trees, parks, covered paths, forests, tree rows
+  // Support data: water, cafes, pharmacies, convenience, transit
+  // We do NOT fetch highway=footway for routing — that's handled by Valhalla/OSRM
   return `
-    [out:json][timeout:15];
-    (
-      nwr["highway"="footway"](${south},${west},${north},${east});
-      nwr["highway"="pedestrian"](${south},${west},${north},${east});
-      nwr["highway"="path"](${south},${west},${north},${east});
-      nwr["footway"="sidewalk"](${south},${west},${north},${east});
-      nwr["sidewalk"](${south},${west},${north},${east});
+[out:json][timeout:20];
+(
+  node["natural"="tree"](${south},${west},${north},${east});
+  way["natural"="tree_row"](${south},${west},${north},${east});
+  way["natural"="wood"](${south},${west},${north},${east});
+  way["landuse"="forest"](${south},${west},${north},${east});
+  way["leisure"="park"](${south},${west},${north},${east});
+  node["leisure"="park"](${south},${west},${north},${east});
+  way["covered"="yes"]["highway"](${south},${west},${north},${east});
+  way["tunnel"="yes"]["highway"="pedestrian"](${south},${west},${north},${east});
+  way["natural"="tree_row"](${south},${west},${north},${east});
 
-      nwr["natural"="tree_row"](${south},${west},${north},${east});
-      nwr["natural"="tree"](${south},${west},${north},${east});
-      nwr["natural"="wood"](${south},${west},${north},${east});
-      nwr["landuse"="forest"](${south},${west},${north},${east});
-      nwr["leisure"="park"](${south},${west},${north},${east});
-      nwr["tree_lined"="yes"](${south},${west},${north},${east});
-      nwr["covered"="yes"](${south},${west},${north},${east});
-      nwr["covered"="arcade"](${south},${west},${north},${east});
-      nwr["covered"="colonnade"](${south},${west},${north},${east});
-
-      nwr["amenity"="shelter"](${south},${west},${north},${east});
-      nwr["shop"="convenience"](${south},${west},${north},${east});
-      nwr["shop"="supermarket"](${south},${west},${north},${east});
-      nwr["shop"="mall"](${south},${west},${north},${east});
-      nwr["amenity"="cafe"](${south},${west},${north},${east});
-      nwr["amenity"="bank"](${south},${west},${north},${east});
-      nwr["amenity"="library"](${south},${west},${north},${east});
-      nwr["amenity"="community_centre"](${south},${west},${north},${east});
-      nwr["amenity"="pharmacy"](${south},${west},${north},${east});
-      nwr["amenity"="drinking_water"](${south},${west},${north},${east});
-      nwr["railway"="subway_entrance"](${south},${west},${north},${east});
-      nwr["railway"="station"](${south},${west},${north},${east});
-      nwr["public_transport"="station"](${south},${west},${north},${east});
-    );
-    out center 80;
-  `;
+  node["amenity"="drinking_water"](${south},${west},${north},${east});
+  node["amenity"="shelter"](${south},${west},${north},${east});
+  node["shop"="convenience"](${south},${west},${north},${east});
+  node["shop"="supermarket"](${south},${west},${north},${east});
+  node["amenity"="cafe"](${south},${west},${north},${east});
+  node["amenity"="pharmacy"](${south},${west},${north},${east});
+  node["amenity"="bank"](${south},${west},${north},${east});
+  node["amenity"="library"](${south},${west},${north},${east});
+  node["amenity"="community_centre"](${south},${west},${north},${east});
+  node["railway"="subway_entrance"](${south},${west},${north},${east});
+  node["railway"="station"](${south},${west},${north},${east});
+  node["public_transport"="stop_position"](${south},${west},${north},${east});
+);
+out center 120;
+  `.trim();
 }
 
 function getElementPosition(element) {
-  // Nodes have lat/lon directly. Ways and relations usually need the center point.
-  if (element.lat && element.lon) {
-    return [element.lat, element.lon];
-  }
-
-  if (element.center && element.center.lat && element.center.lon) {
-    return [element.center.lat, element.center.lon];
-  }
-
+  if (element.lat && element.lon) return [element.lat, element.lon];
+  if (element.center) return [element.center.lat, element.center.lon];
   return null;
 }
 
@@ -64,9 +61,7 @@ function convertElementToPlace(element, areaId) {
   const type = classifyPlace(tags);
   const position = getElementPosition(element);
 
-  if (!position || type === "other") {
-    return null;
-  }
+  if (!position || type === "other") return null;
 
   return {
     id: `osm-${element.type}-${element.id}`,
@@ -79,37 +74,44 @@ function convertElementToPlace(element, areaId) {
   };
 }
 
-function sortPlaces(placeA, placeB) {
-  const typeWeight = {
-    walk_path: 0,
-    shade_path: 1,
-    shade_area: 2,
-    support_shelter: 3,
-    support_water: 4,
-    support_cooling: 5,
-    support_transit: 6,
-  };
-
-  return (typeWeight[placeA.type] ?? 10) - (typeWeight[placeB.type] ?? 10);
+async function tryFetch(endpoint, query) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `data=${encodeURIComponent(query)}`,
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 export async function fetchCoolingPlaces(area) {
   const query = buildOverpassQuery(area.bbox);
+  let lastErr;
 
-  const response = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: query,
-  });
-
-  if (!response.ok) {
-    throw new Error("Overpass API request failed");
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const data = await tryFetch(endpoint, query);
+      return data.elements
+        .map((el) => convertElementToPlace(el, area.id))
+        .filter(Boolean)
+        .sort((a, b) => {
+          const w = {
+            shade_path: 0,
+            shade_area: 1,
+            support_water: 2,
+            support_shelter: 3,
+            support_cooling: 4,
+            support_transit: 5,
+          };
+          return (w[a.type] ?? 9) - (w[b.type] ?? 9);
+        });
+    } catch (err) {
+      lastErr = err;
+    }
   }
 
-  const data = await response.json();
-
-  return data.elements
-    .map((element) => convertElementToPlace(element, area.id))
-    .filter(Boolean)
-    .sort(sortPlaces)
-    .slice(0, 80);
+  // Return empty array — no fake data, caller handles "no results"
+  console.warn("Overpass fetch failed:", lastErr?.message);
+  return [];
 }

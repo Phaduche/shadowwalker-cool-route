@@ -2,19 +2,29 @@ import { useEffect, useMemo, useState } from "react";
 import { demoAreas } from "../data/demoAreas";
 import { fallbackPlaces } from "../data/fallbackPlaces";
 import { fetchCoolingPlaces } from "../services/overpassService";
+import { fetchWalkingRoutes } from "../services/routingService";
 import { buildRoutes, getShadePlaces, getSupportPlaces } from "../utils/routeBuilder";
 import { getRecommendedRoute } from "../utils/coolRouteScore";
 
-function getFallbackPlacesForArea(areaId) {
-  return fallbackPlaces.filter((place) => place.areaId === areaId);
+function normalizeFallbackPlace(place) {
+  const typeMap = {
+    shade: "shade_area",
+    water: "support_water",
+    ac: "support_cooling",
+    underground: "support_transit",
+  };
+
+  return {
+    ...place,
+    type: typeMap[place.type] || place.type,
+    source: "fallback",
+  };
 }
 
-function hasEnoughRouteData(places) {
-  const hasWalkPath = places.some((place) => place.type === "walk_path");
-  const hasShade = places.some(
-    (place) => place.type === "shade_path" || place.type === "shade_area"
-  );
-  return hasWalkPath && hasShade;
+function getFallbackPlacesForArea(areaId) {
+  return fallbackPlaces
+    .filter((place) => place.areaId === areaId)
+    .map(normalizeFallbackPlace);
 }
 
 export default function useCoolRoute(currentPage) {
@@ -24,6 +34,8 @@ export default function useCoolRoute(currentPage) {
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [dataMessage, setDataMessage] = useState("Ready");
+  const [routingResult, setRoutingResult] = useState(null);
+  const [routeError, setRouteError] = useState("");
 
   const selectedArea = demoAreas.find((area) => area.id === selectedAreaId);
 
@@ -34,24 +46,38 @@ export default function useCoolRoute(currentPage) {
 
     async function loadPlaces() {
       setIsLoading(true);
-      setDataMessage("Loading map data...");
+      setDataMessage("Loading walking route...");
+      setRouteError("");
 
       try {
         const osmPlaces = await fetchCoolingPlaces(selectedArea);
+        const useFallback = osmPlaces.length === 0;
+        const contextPlaces = useFallback
+          ? getFallbackPlacesForArea(selectedArea.id)
+          : osmPlaces;
+        const walkingRoutes = await fetchWalkingRoutes(
+          selectedArea.start.position,
+          selectedArea.end.position
+        );
 
-        if (hasEnoughRouteData(osmPlaces)) {
-          if (!canUseResult) return;
-          setPlaces(osmPlaces);
-          setIsUsingFallback(false);
-          setDataMessage("OpenStreetMap data");
-          return;
-        }
-        throw new Error("Not enough route data.");
+        if (!canUseResult) return;
+
+        setPlaces(contextPlaces);
+        setRoutingResult(walkingRoutes);
+        setIsUsingFallback(useFallback);
+        setDataMessage(
+          useFallback
+            ? "Walking route + fallback data"
+            : `Walking route + OpenStreetMap data`
+        );
       } catch (error) {
         if (!canUseResult) return;
+
+        setRoutingResult(null);
         setPlaces(getFallbackPlacesForArea(selectedArea.id));
         setIsUsingFallback(true);
-        setDataMessage("Demo data");
+        setRouteError(error.message);
+        setDataMessage("Walking route unavailable");
       } finally {
         if (canUseResult) setIsLoading(false);
       }
@@ -65,10 +91,11 @@ export default function useCoolRoute(currentPage) {
   }, [currentPage, selectedArea]);
 
   const routes = useMemo(() => {
-    return buildRoutes(selectedArea, places);
-  }, [selectedArea, places]);
+    if (!routingResult) return [];
+    return buildRoutes(selectedArea, routingResult, places);
+  }, [selectedArea, routingResult, places]);
 
-  const recommendedRoute = getRecommendedRoute(routes);
+  const recommendedRoute = routes.length > 0 ? getRecommendedRoute(routes) : null;
   const shadePlaces = getShadePlaces(places).slice(0, 20);
   const supportPlaces = getSupportPlaces(places);
 
@@ -84,6 +111,7 @@ export default function useCoolRoute(currentPage) {
     recommendedRoute,
     shadePlaces,
     supportPlaces,
-    isUsingFallback
+    isUsingFallback,
+    routeError
   };
 }

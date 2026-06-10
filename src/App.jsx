@@ -18,17 +18,17 @@ import { demoAreas } from "./data/demoAreas";
 function App() {
   const [currentPage, setCurrentPage] = useState("main");
 
-  // 💡 커스텀 훅으로 로직 깔끔하게 분리 완료!
+  //  커스텀 훅으로 로직 깔끔하게 분리 완료!
   const { temp, status, triggerMockAlert } = useHeatAlert();
   const routeProps = useCoolRoute(currentPage);
 
   return (
     <div className="app-shell">
-      {/* 🏠 메인 홈 페이지 구역 */}
+      {/* 홈 페이지 구역 */}
       {currentPage === "main" && (
-        <HomePanel 
-          temp={temp} 
-          status={status} 
+        <HomePanel
+          temp={temp}
+          status={status}
           triggerMockAlert={triggerMockAlert}
           onOpenMap={() => {
             setCurrentPage("route");
@@ -38,23 +38,28 @@ function App() {
         />
       )}
 
-      {/* 📄 대응수칙 안내 페이지 구역 */}
+      {/* 대응수칙 안내 페이지 구역 */}
       {currentPage === "guide" && (
         <main className="home-page">
           <HeatSafetyGuide onBack={() => setCurrentPage("main")} />
         </main>
       )}
 
-      {/* 🗺️ 그늘 지도 서비스 구역 */}
+      {/* 그늘 지도 서비스 구역 */}
       {currentPage === "route" && (
         <main className="route-app">
           <header className="route-app-bar">
-            <button className="back-button" onClick={() => setCurrentPage("main")}>
+            <button
+              className="back-button"
+              onClick={() => setCurrentPage("main")}
+            >
               ←
             </button>
             <div>
               <h1>Shade Route</h1>
-              <p>{routeProps.isLoading ? "Loading..." : routeProps.dataMessage}</p>
+              <p>
+                {routeProps.isLoading ? "Loading..." : routeProps.dataMessage}
+              </p>
             </div>
           </header>
 
@@ -76,13 +81,22 @@ function App() {
           </section>
 
           <nav className="route-action-bar">
-            <button className={routeProps.routePanel === "map" ? "active" : ""} onClick={() => routeProps.setRoutePanel("map")}>
+            <button
+              className={routeProps.routePanel === "map" ? "active" : ""}
+              onClick={() => routeProps.setRoutePanel("map")}
+            >
               Map
             </button>
-            <button className={routeProps.routePanel === "compare" ? "active" : ""} onClick={() => routeProps.setRoutePanel("compare")}>
+            <button
+              className={routeProps.routePanel === "compare" ? "active" : ""}
+              onClick={() => routeProps.setRoutePanel("compare")}
+            >
               Compare
             </button>
-            <button className={routeProps.routePanel === "places" ? "active" : ""} onClick={() => routeProps.setRoutePanel("places")}>
+            <button
+              className={routeProps.routePanel === "places" ? "active" : ""}
+              onClick={() => routeProps.setRoutePanel("places")}
+            >
               Nearby
             </button>
           </nav>
@@ -100,9 +114,16 @@ function App() {
                   <RouteInfoCard
                     key={route.id}
                     route={route}
-                    isRecommended={routeProps.recommendedRoute.id === route.id}
+                    isRecommended={routeProps.recommendedRoute?.id === route.id}
                   />
                 ))}
+
+                {routeProps.routes.length === 0 && (
+                  <p className="empty-message">
+                    {routeProps.routeError ||
+                      "No walking route is available yet."}
+                  </p>
+                )}
               </div>
             </section>
           )}
