@@ -1,102 +1,80 @@
-import { useState } from "react";
+import React, { useState } from "react";
+// 💡 새로운 정부 공식 데이터 임포트
+import { officialGuidelines } from "../data/officialGuidelines.js";
 
-export default function HeatSafetyGuide({ onBack }) {
-  const [activeTab, setActiveTab] = useState("general");
+const HeatSafetyGuide = ({ onBack }) => {
+  const [activeTab, setActiveTab] = useState("rules");
 
-  // Heatwave Safety Guidelines Data - the guidline is ai generated!! should change the content to government approved info later
-  const guideData = {
-    general: {
-      title: "General Public Guidelines",
-      subtitle: "3 Core Preventive Rules for Everyone",
-      tips: [
-        { title: "Stay Hydrated", desc: "Drink water or sports drinks regularly, even if you do not feel thirsty." },
-        { title: "Keep Cool", desc: "Wear lightweight, light-colored clothing and block sunlight with umbrellas or hats when outdoors." },
-        { title: "Take Breaks", desc: "Minimize outdoor activities and rest during peak heat hours (12 PM – 5 PM)." },
-      ]
-    },
-    vulnerable: {
-      title: "Vulnerable Groups",
-      subtitle: "Special Care for Seniors, Children, and Chronic Patients",
-      tips: [
-        { title: "Daily Check-ins", desc: "Families or neighbors should check the health status of elderly individuals living alone daily." },
-        { title: "Monitor Indoor Temp", desc: "Keep indoor temperatures between 26–28°C using air conditioners or fans actively." },
-        { title: "Emergency Contacts", desc: "Contact emergency services immediately if early symptoms like dizziness or headaches appear." },
-      ]
-    },
-    worker: {
-      title: "Outdoor Workers",
-      subtitle: "Safety Protocols for Construction and Field Works",
-      tips: [
-        { title: "Provide Water & Salt", desc: "Ensure clean, cool water and salt are always accessible close to the workspace." },
-        { title: "Shaded Rest Areas", desc: "Set up well-ventilated, shaded resting areas protected from direct sunlight." },
-        { title: "Mandatory Breaks", desc: "Provide 10 to 15 minutes of mandatory rest every hour during heatwave warnings." },
-      ]
-    }
-  };
-
-  const currentGuide = guideData[activeTab];
+  // 현재 탭에 맞는 데이터 선택
+  const currentContent = officialGuidelines[activeTab];
 
   return (
-    <div className="p-6 bg-white rounded-2xl shadow-md m-4 border border-gray-100 max-w-md mx-auto">
-      
-      {/* Back Button */}
-      <button 
-        onClick={onBack}
-        className="mb-4 flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600 transition-all"
-      >
-        <span>←</span> Back
-      </button>
-
-      {/* Header Section */}
-      <div className="mb-6">
-        <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Safety Guide</span>
-        <h2 className="text-xl font-extrabold text-gray-900 mt-1">Heatwave Action Protocols</h2>
-        <p className="text-xs text-gray-400 mt-1">Check the guidelines based on your situation to prevent heat-related illnesses.</p>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-        <button
-          onClick={() => setActiveTab("general")}
-          className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
-            activeTab === "general" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
-          }`}
+    <div className="guide-container p-4 bg-white min-h-screen">
+      {/* 상단 헤더 구역 */}
+      <header className="flex items-center mb-6">
+        <button 
+          onClick={onBack}
+          className="mr-4 text-gray-600 font-bold text-lg"
         >
-          General
+          ←
         </button>
-        <button
-          onClick={() => setActiveTab("vulnerable")}
-          className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
-            activeTab === "vulnerable" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          Vulnerable
-        </button>
-        <button
-          onClick={() => setActiveTab("worker")}
-          className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${
-            activeTab === "worker" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          Workers
-        </button>
-      </div>
-
-      {/* Guidelines Content */}
-      <div className="space-y-4 animate-fadeIn">
-        <div className="border-b border-gray-50 pb-2">
-          <h3 className="text-base font-bold text-gray-800">{currentGuide.title}</h3>
-          <p className="text-xs text-amber-600 font-medium mt-0.5">{currentGuide.subtitle}</p>
+        <div>
+          <h1 className="text-xl font-black text-gray-900 uppercase">
+            Government Safety Guidelines
+          </h1>
+          <p className="text-xs text-gray-500 font-medium">
+            Certified by KDCA (KR) and CDC (USA)
+          </p>
         </div>
+      </header>
 
-        {/* Action Card List */}
-        {currentGuide.tips.map((tip, index) => (
-          <div key={index} className="p-4 bg-amber-50/40 rounded-xl border border-amber-100/50 space-y-0.5">
-            <h4 className="text-sm font-bold text-gray-800">{tip.title}</h4>
-            <p className="text-xs text-gray-500 leading-relaxed">{tip.desc}</p>
+      {/* 전문적인 탭 메뉴 (이모지 제거) */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          className={`flex-1 py-3 font-bold text-sm transition-all ${
+            activeTab === "rules" 
+            ? "text-blue-600 border-b-2 border-blue-600" 
+            : "text-gray-400"
+          }`}
+          onClick={() => setActiveTab("rules")}
+        >
+          SAFETY PROTOCOLS
+        </button>
+        <button
+          className={`flex-1 py-3 font-bold text-sm transition-all ${
+            activeTab === "emergency" 
+            ? "text-red-600 border-b-2 border-red-600" 
+            : "text-gray-400"
+          }`}
+          onClick={() => setActiveTab("emergency")}
+        >
+          EMERGENCY STEPS
+        </button>
+      </div>
+
+      {/* 상세 가이드 리스트 구역 */}
+      <div className="space-y-6">
+        {currentContent.map((item) => (
+          <div key={item.id} className="pb-4 border-b border-gray-100 last:border-0">
+            <h3 className={`text-base font-bold mb-2 ${
+              activeTab === "rules" ? "text-blue-800" : "text-red-800"
+            }`}>
+              {item.title}
+            </h3>
+            <p className="text-sm text-gray-700 leading-relaxed text-left font-normal">
+              {item.detail}
+            </p>
           </div>
         ))}
       </div>
+
+      {/* 하단 공신력 강조 문구 */}
+      <footer className="mt-10 p-4 bg-gray-50 rounded-xl text-center">
+        <p className="text-[10px] text-gray-400 leading-tight">
+          This information is based on the guidelines provided by the Ministry of the Interior and Safety (South Korea), 
+          the Korea Disease Control and Prevention Agency (KDCA), and the Centers for Disease Control and Prevention (CDC, USA).
+        </p>
+      </footer>
 
         <div className="mt-6 p-3 bg-red-50 rounded-xl border border-red-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -104,12 +82,14 @@ export default function HeatSafetyGuide({ onBack }) {
             </div>
         
             <button 
-                onClick={() => window.location.href = "tel:119"}
+                onClick={() => window.location.href = "tel:911"}
                 className="inline-block text-xs font-black bg-red-600 text-white px-3 py-1.5 rounded-xl shadow-sm animate-pulse text-center border-none cursor-pointer hover:bg-red-700 transition-all"
             >
-                Call 119
+                Call 911
             </button>
         </div>
     </div>
   );
 }
+
+export default HeatSafetyGuide;

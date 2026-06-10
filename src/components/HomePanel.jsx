@@ -11,12 +11,12 @@ export default function HomePanel({ temp, status, triggerMockAlert, onOpenMap, o
 
       <HeatAlert />
 
-      {/* 🌤️ 실시간 날씨 카드 구역 */}
+      {/* weather card */}
       {temp && <WeatherCard temp={temp} status={status} />}
 
-      {/* 🛠️ 데모 컨트롤러 (심사위원 시연용 패널) */}
+      {/* demo controller */}
       <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-3 text-left">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">🛠️ Demo Controller (Test Only)</p>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Demo Controller (Test Only)</p>
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => triggerMockAlert(37)}
@@ -39,7 +39,7 @@ export default function HomePanel({ temp, status, triggerMockAlert, onOpenMap, o
         </div>
       </div>
 
-      {/* 🔘 하단 액션 버튼 그룹 */}
+      {/* buttons */}
       <div className="home-actions flex flex-col gap-3">
         <button
           className="primary-button w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all"
