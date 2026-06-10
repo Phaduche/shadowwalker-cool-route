@@ -5,18 +5,19 @@ function clampScore(score) {
 }
 
 export function calculateCoolScore(route) {
-  let score = 0;
+  let score = 5;
 
-  // Shade coverage is still the main point.
-  // But the shade route should also stay close to walkable path data.
-  score += route.shadeCoverage * 0.85;
+  // Shade coverage is the main signal shown in the comparison card.
+  score += route.shadeCoverage * 0.78;
 
-  // Distance matters, but I keep it as a smaller penalty than shade.
-  score -= route.distance * 0.006;
+  // Avoid making normal walking distances collapse the score to zero.
+  // Only longer routes receive a capped penalty.
+  score -= Math.min(12, Math.max(0, route.distance - 700) * 0.004);
 
   // shade_path is more route-like, shade_area is more area-like.
   score += route.shadePathCount * 6;
   score += route.shadeAreaCount * 4;
+  score += Math.min(10, route.shadePointCount * 1.5);
 
   // If OSM gives us pedestrian path data, the route feels more realistic.
   if (route.walkPathCount > 0) {
