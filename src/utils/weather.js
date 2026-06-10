@@ -7,6 +7,3 @@ export async function getWeather(lat, lon) {
 
   return await res.json()
 }
-
-console.log(import.meta.env.VITE_OPENWEATHER_API_KEY)
-console.log("API KEY:", API_KEY)
