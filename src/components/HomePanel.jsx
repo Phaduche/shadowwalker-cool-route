@@ -1,59 +1,60 @@
 import HeatAlert from "./HeatAlert";
 import WeatherCard from "./WeatherCard";
 
-export default function HomePanel({ temp, status, triggerMockAlert, onOpenMap, onOpenGuide }) {
+export default function HomePanel({ temp, status, triggerMockAlert }) {
   return (
-    <main className="home-page w-full max-w-md mx-auto text-center space-y-6 p-4">
-      <div className="home-title">
-        <h1 className="text-3xl font-black text-gray-800 tracking-tight">Cool-Route</h1>
-        <p className="text-sm text-gray-500">ShadowWalker heat and shade support</p>
+    <main className="w-full max-w-md md:max-w-4xl mx-auto text-center space-y-6">
+      
+      {/* prettier header :) */}
+      <div className="space-y-1">
+        <h1 className="text-4xl font-black text-gray-900 tracking-tight uppercase">
+          Cool-Route
+        </h1>
+        <p className="text-xs font-semibold text-green-500 uppercase tracking-widest">
+          ShadowWalker Heat & Shade Support
+        </p>
       </div>
 
+      {/* heat alert component */}
       <HeatAlert />
 
-      {/* weather card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-stretch"></div>
+
+      {/* weather card area */}
       {temp && <WeatherCard temp={temp} status={status} />}
 
       {/* demo controller */}
-      <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-3 text-left">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Demo Controller (Test Only)</p>
+      <div className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-4 text-left">
+        <div className="flex flex-col">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+            Demo Controller
+          </p>
+          <p className="text-xs text-gray-500 font-medium">
+            Test simulation for government guidelines
+          </p>
+        </div>
+        
+        {/* test buttons */}
         <div className="grid grid-cols-3 gap-2">
           <button
-            onClick={() => triggerMockAlert(37)}
-            className="py-2 px-3 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+            onClick={() => triggerMockAlert(38)} 
+            className="py-2.5 px-3 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm border-none cursor-pointer"
           >
-            Force 37°C
+            Force 38°C
           </button>
           <button
-            onClick={() => triggerMockAlert(34)}
-            className="py-2 px-3 bg-orange-400 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+            onClick={() => triggerMockAlert(35)}
+            className="py-2.5 px-3 bg-orange-400 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm border-none cursor-pointer"
           >
-            Force 34°C
+            Force 35°C
           </button>
           <button
             onClick={() => triggerMockAlert(24)}
-            className="py-2 px-3 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+            className="py-2.5 px-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm border-none cursor-pointer"
           >
             Force 24°C
           </button>
         </div>
-      </div>
-
-      {/* buttons */}
-      <div className="home-actions flex flex-col gap-3">
-        <button
-          className="primary-button w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all"
-          onClick={onOpenMap}
-        >
-          Open Shade Route Map
-        </button>
-
-        <button
-          className="secondary-button w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-md transition-all"
-          onClick={onOpenGuide}
-        >
-          Heatwave Safety Guide
-        </button>
       </div>
     </main>
   );

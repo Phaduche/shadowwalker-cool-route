@@ -1,16 +1,13 @@
 import React, { useState } from "react";
-// 💡 새로운 정부 공식 데이터 임포트
 import { officialGuidelines } from "../data/officialGuidelines.js";
 
 const HeatSafetyGuide = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState("rules");
-
-  // 현재 탭에 맞는 데이터 선택
   const currentContent = officialGuidelines[activeTab];
 
   return (
     <div className="guide-container p-4 bg-white min-h-screen">
-      {/* 상단 헤더 구역 */}
+      {/* header area */}
       <header className="flex items-center mb-6">
         <button 
           onClick={onBack}
@@ -28,7 +25,7 @@ const HeatSafetyGuide = ({ onBack }) => {
         </div>
       </header>
 
-      {/* 전문적인 탭 메뉴 (이모지 제거) */}
+      {/* tab navigation */}
       <div className="flex border-b border-gray-200 mb-6">
         <button
           className={`flex-1 py-3 font-bold text-sm transition-all ${
@@ -52,7 +49,7 @@ const HeatSafetyGuide = ({ onBack }) => {
         </button>
       </div>
 
-      {/* 상세 가이드 리스트 구역 */}
+      {/* content area */}
       <div className="space-y-6">
         {currentContent.map((item) => (
           <div key={item.id} className="pb-4 border-b border-gray-100 last:border-0">
@@ -68,7 +65,7 @@ const HeatSafetyGuide = ({ onBack }) => {
         ))}
       </div>
 
-      {/* 하단 공신력 강조 문구 */}
+      {/* footer */}
       <footer className="mt-10 p-4 bg-gray-50 rounded-xl text-center">
         <p className="text-[10px] text-gray-400 leading-tight">
           This information is based on the guidelines provided by the Ministry of the Interior and Safety (South Korea), 
