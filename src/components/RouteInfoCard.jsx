@@ -52,7 +52,7 @@ function RouteInfoCard({ route, isRecommended }) {
 
       {route.type === "shade" && (
         <p className="small-note">
-          This route uses shade-related map data as its main route signal.
+          This route keeps the walking-route geometry and uses shade data only for scoring.
         </p>
       )}
     </article>

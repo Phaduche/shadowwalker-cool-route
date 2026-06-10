@@ -37,10 +37,10 @@ export function getRecommendedRoute(routes) {
 
 export function getRouteComment(route) {
   if (route.type === "shade") {
-    return "This route uses shade-related map data while staying close to pedestrian path data when available.";
+    return "This route uses real walking geometry and scores nearby shade along that walk.";
   }
 
-  return "This route is the shorter baseline, but it may expose the walker to more direct sunlight.";
+  return "This is the shortest walking route candidate, but it may expose the walker to more direct sunlight.";
 }
 
 export function getRouteTypeLabel(type) {

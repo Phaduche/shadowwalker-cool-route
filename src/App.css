@@ -148,6 +148,7 @@ button {
 
 .area-selector p,
 .map-description,
+.route-error,
 .support-description,
 .route-comment,
 .small-note,
@@ -238,6 +239,17 @@ button {
   border: 1px solid #dfe5e1;
   border-radius: 12px;
   overflow: hidden;
+}
+
+.route-error {
+  margin: 8px 0 10px;
+  padding: 9px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .shadowwalker-marker div {

@@ -11,8 +11,8 @@ import RouteInfoCard from "./components/RouteInfoCard";
 import SupportPlaceList from "./components/SupportPlaceList";
 
 import { demoAreas } from "./data/demoAreas";
-import { fallbackPlaces } from "./data/fallbackPlaces";
 import { fetchCoolingPlaces } from "./services/overpassService";
+import { fetchWalkingRouteCandidates } from "./services/routingService";
 import {
   buildRoutes,
   getShadePlaces,
@@ -20,27 +20,15 @@ import {
 } from "./utils/routeBuilder";
 import { getRecommendedRoute } from "./utils/coolRouteScore";
 
-function getFallbackPlacesForArea(areaId) {
-  return fallbackPlaces.filter((place) => place.areaId === areaId);
-}
-
-function hasEnoughRouteData(places) {
-  const hasWalkPath = places.some((place) => place.type === "walk_path");
-  const hasShade = places.some(
-    (place) => place.type === "shade_path" || place.type === "shade_area"
-  );
-
-  return hasWalkPath && hasShade;
-}
-
 function App() {
   const [currentPage, setCurrentPage] = useState("main");
   const [routePanel, setRoutePanel] = useState("map");
   const [selectedAreaId, setSelectedAreaId] = useState(demoAreas[0].id);
   const [places, setPlaces] = useState([]);
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [walkingRouteCandidates, setWalkingRouteCandidates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [dataMessage, setDataMessage] = useState("Ready");
+  const [routeError, setRouteError] = useState("");
 
   const selectedArea = demoAreas.find((area) => area.id === selectedAreaId);
 
@@ -53,27 +41,33 @@ function App() {
 
     async function loadPlaces() {
       setIsLoading(true);
-      setDataMessage("Loading map data...");
+      setDataMessage("Loading walking route and map data...");
+      setRouteError("");
 
       try {
-        const osmPlaces = await fetchCoolingPlaces(selectedArea);
+        const [routeCandidates, osmPlaces] = await Promise.all([
+          fetchWalkingRouteCandidates(selectedArea),
+          fetchCoolingPlaces(selectedArea).catch(() => []),
+        ]);
 
-        if (hasEnoughRouteData(osmPlaces)) {
-          if (!canUseResult) return;
-
-          setPlaces(osmPlaces);
-          setIsUsingFallback(false);
-          setDataMessage("OpenStreetMap data");
-          return;
-        }
-
-        throw new Error("Not enough route data.");
-      } catch (error) {
         if (!canUseResult) return;
 
-        setPlaces(getFallbackPlacesForArea(selectedArea.id));
-        setIsUsingFallback(true);
-        setDataMessage("Demo data");
+        setWalkingRouteCandidates(routeCandidates);
+        setPlaces(osmPlaces);
+        setDataMessage(
+          osmPlaces.length > 0
+            ? "Walking route + OpenStreetMap context"
+            : "Walking route loaded. OSM context unavailable."
+        );
+      } catch {
+        if (!canUseResult) return;
+
+        setWalkingRouteCandidates([]);
+        setPlaces([]);
+        setRouteError(
+          "Walking route could not be loaded, so I am not showing a fake straight route."
+        );
+        setDataMessage("Walking route unavailable");
       } finally {
         if (canUseResult) {
           setIsLoading(false);
@@ -89,10 +83,10 @@ function App() {
   }, [currentPage, selectedArea]);
 
   const routes = useMemo(() => {
-    return buildRoutes(selectedArea, places);
-  }, [selectedArea, places]);
+    return buildRoutes(selectedArea, places, walkingRouteCandidates);
+  }, [selectedArea, places, walkingRouteCandidates]);
 
-  const recommendedRoute = getRecommendedRoute(routes);
+  const recommendedRoute = routes.length > 0 ? getRecommendedRoute(routes) : null;
   const shadePlaces = getShadePlaces(places).slice(0, 20);
   const supportPlaces = getSupportPlaces(places);
 
@@ -165,6 +159,7 @@ function App() {
               routes={routes}
               shadePlaces={shadePlaces}
               supportPlaces={supportPlaces}
+              routeError={routeError}
             />
           </section>
 
@@ -205,19 +200,20 @@ function App() {
                   <RouteInfoCard
                     key={route.id}
                     route={route}
-                    isRecommended={recommendedRoute.id === route.id}
+                    isRecommended={recommendedRoute?.id === route.id}
                   />
                 ))}
+
+                {routes.length === 0 && (
+                  <p className="empty-message">{routeError}</p>
+                )}
               </div>
             </section>
           )}
 
           {routePanel === "places" && (
             <section className="app-panel">
-              <SupportPlaceList
-                places={supportPlaces}
-                isUsingFallback={isUsingFallback}
-              />
+              <SupportPlaceList places={supportPlaces} />
             </section>
           )}
         </main>

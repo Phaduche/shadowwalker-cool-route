@@ -36,133 +36,72 @@ function getRouteDistance(points) {
   return Math.round(total);
 }
 
-function getClosestWalkPathDistance(place, walkPlaces) {
-  if (walkPlaces.length === 0) {
-    return 0;
+function getClosestRouteDistance(place, routePoints) {
+  if (routePoints.length === 0) {
+    return Number.POSITIVE_INFINITY;
   }
 
-  const distances = walkPlaces.map((walkPlace) => {
-    return getDistanceMeters(place.position, walkPlace.position);
+  const distances = routePoints.map((point) => {
+    return getDistanceMeters(place.position, point);
   });
 
   return Math.min(...distances);
 }
 
-function sortByShadeRouteValue(places, currentPoint, endPoint, walkPlaces) {
-  return [...places].sort((placeA, placeB) => {
-    const placeADistanceFromNow = getDistanceMeters(currentPoint, placeA.position);
-    const placeBDistanceFromNow = getDistanceMeters(currentPoint, placeB.position);
+function getRouteShadeInfo(routePoints, places) {
+  const shadePlaces = getShadePlaces(places);
+  const walkPlaces = getWalkPlaces(places);
+  const closeShadePlaces = shadePlaces.filter((place) => {
+    const closeDistance = getClosestRouteDistance(place, routePoints);
+    const limit = place.type === "shade_path" ? 45 : 70;
 
-    const placeADistanceToEnd = getDistanceMeters(placeA.position, endPoint);
-    const placeBDistanceToEnd = getDistanceMeters(placeB.position, endPoint);
-
-    const placeAWalkDistance = getClosestWalkPathDistance(placeA, walkPlaces);
-    const placeBWalkDistance = getClosestWalkPathDistance(placeB, walkPlaces);
-
-    // shade_path matters, but it also needs to be close to a walkable path.
-    // This keeps the route from jumping to a tree or park that is not actually useful for walking.
-    const placeABonus = placeA.type === "shade_path" ? -180 : 0;
-    const placeBBonus = placeB.type === "shade_path" ? -180 : 0;
-
-    const scoreA =
-      placeADistanceFromNow * 0.55 +
-      placeADistanceToEnd * 0.25 +
-      placeAWalkDistance * 0.2 +
-      placeABonus;
-
-    const scoreB =
-      placeBDistanceFromNow * 0.55 +
-      placeBDistanceToEnd * 0.25 +
-      placeBWalkDistance * 0.2 +
-      placeBBonus;
-
-    return scoreA - scoreB;
+    return closeDistance <= limit;
   });
+
+  const shadePathCount = countPlacesByType(closeShadePlaces, "shade_path");
+  const shadeAreaCount = countPlacesByType(closeShadePlaces, "shade_area");
+  const shadePointCount = closeShadePlaces.length;
+
+  // 여기서는 그늘 점수만 계산한다. 길 모양은 무조건 보행 라우팅 결과를 그대로 쓴다.
+  const coverage =
+    18 + shadePathCount * 12 + shadeAreaCount * 8 + Math.min(walkPlaces.length, 8);
+
+  return {
+    shadeCoverage: Math.min(coverage, 92),
+    shadePointCount,
+    shadePathCount,
+    shadeAreaCount,
+    walkPathCount: walkPlaces.length,
+  };
 }
 
-function removeDuplicatePlaces(places) {
-  const result = [];
-
-  for (const place of places) {
-    const alreadyAdded = result.some((item) => item.id === place.id);
-
-    if (!alreadyAdded) {
-      result.push(place);
-    }
-  }
-
-  return result;
+function countPlacesByType(places, type) {
+  return places.filter((place) => place.type === type).length;
 }
 
-function pickShadeStops(area, places) {
-  const shadePlaces = places.filter((place) => isShadePlace(place.type));
-  const walkPlaces = places.filter((place) => isWalkPath(place.type));
-
-  if (shadePlaces.length === 0) {
-    return [];
+function getRouteDistanceFromCandidate(candidate) {
+  if (candidate.distance > 0) {
+    return candidate.distance;
   }
 
-  // I am only picking a few shade points so the route stays readable.
-  // The point is not to connect every tree. The point is to suggest a walkable shade route.
-  const maxStops = 3;
-  const selectedStops = [];
-
-  let currentPoint = area.start.position;
-
-  for (let i = 0; i < maxStops; i += 1) {
-    const remainingPlaces = shadePlaces.filter((place) => {
-      return !selectedStops.some((selected) => selected.id === place.id);
-    });
-
-    if (remainingPlaces.length === 0) {
-      break;
-    }
-
-    const sortedPlaces = sortByShadeRouteValue(
-      remainingPlaces,
-      currentPoint,
-      area.end.position,
-      walkPlaces
-    );
-
-    const nextStop = sortedPlaces[0];
-
-    selectedStops.push(nextStop);
-    currentPoint = nextStop.position;
-  }
-
-  return removeDuplicatePlaces(selectedStops);
+  return getRouteDistance(candidate.points);
 }
 
-function estimateShadeCoverage(routeType, shadeStops, walkPlaces) {
-  // This is an estimated score for the demo, not exact shade measurement.
-  // I give a small boost when there is walk_path data because the shade route is more believable.
+function makeRoute(area, type, candidate, places) {
+  const shadeInfo = getRouteShadeInfo(candidate.points, places);
 
-  if (routeType === "fast") {
-    return 18;
-  }
-
-  if (shadeStops.length === 0) {
-    return walkPlaces.length > 0 ? 26 : 22;
-  }
-
-  let coverage = walkPlaces.length > 0 ? 34 : 30;
-
-  for (const stop of shadeStops) {
-    if (stop.type === "shade_path") {
-      coverage += 18;
-    }
-
-    if (stop.type === "shade_area") {
-      coverage += 14;
-    }
-  }
-
-  return Math.min(coverage, 88);
-}
-
-function countStopsByType(stops, type) {
-  return stops.filter((stop) => stop.type === type).length;
+  return {
+    id: `${area.id}-${type}`,
+    areaId: area.id,
+    name: type === "fast" ? "Fast Route" : "Shade Route",
+    type,
+    points: candidate.points,
+    distance: getRouteDistanceFromCandidate(candidate),
+    duration: candidate.duration,
+    routingSource: candidate.source,
+    ...shadeInfo,
+    sunExposure: 100 - shadeInfo.shadeCoverage,
+  };
 }
 
 export function getWalkPlaces(places) {
@@ -179,52 +118,32 @@ export function getSupportPlaces(places) {
   return places.filter((place) => isSupportPlace(place.type)).slice(0, 12);
 }
 
-export function buildRoutes(area, places) {
-  const start = area.start.position;
-  const end = area.end.position;
+export function buildRoutes(area, places, walkingRouteCandidates = []) {
+  if (walkingRouteCandidates.length === 0) {
+    return [];
+  }
 
-  const walkPlaces = getWalkPlaces(places);
-  const shadeStops = pickShadeStops(area, places);
+  const candidatesByDistance = [...walkingRouteCandidates].sort((routeA, routeB) => {
+    return getRouteDistanceFromCandidate(routeA) - getRouteDistanceFromCandidate(routeB);
+  });
 
-  const fastPoints = [start, end];
-  const shadePoints = [
-    start,
-    ...shadeStops.map((place) => place.position),
-    end,
+  const candidatesByShade = [...walkingRouteCandidates].sort((routeA, routeB) => {
+    const shadeA = getRouteShadeInfo(routeA.points, places).shadeCoverage;
+    const shadeB = getRouteShadeInfo(routeB.points, places).shadeCoverage;
+
+    if (shadeB !== shadeA) {
+      return shadeB - shadeA;
+    }
+
+    return getRouteDistanceFromCandidate(routeA) - getRouteDistanceFromCandidate(routeB);
+  });
+
+  const fastCandidate = candidatesByDistance[0];
+  const shadeCandidate = candidatesByShade[0];
+
+  // 후보가 하나뿐이면 둘 다 같은 실제 보행 경로를 보여준다. 직선을 새로 만들지는 않는다.
+  return [
+    makeRoute(area, "fast", fastCandidate, places),
+    makeRoute(area, "shade", shadeCandidate, places),
   ];
-
-  const fastShadeCoverage = estimateShadeCoverage("fast", [], walkPlaces);
-  const shadeRouteCoverage = estimateShadeCoverage("shade", shadeStops, walkPlaces);
-
-  const fastRoute = {
-    id: `${area.id}-fast`,
-    areaId: area.id,
-    name: "Fast Route",
-    type: "fast",
-    points: fastPoints,
-    distance: getRouteDistance(fastPoints),
-    shadeCoverage: fastShadeCoverage,
-    sunExposure: 100 - fastShadeCoverage,
-    shadePointCount: 0,
-    shadePathCount: 0,
-    shadeAreaCount: 0,
-    walkPathCount: walkPlaces.length,
-  };
-
-  const shadeRoute = {
-    id: `${area.id}-shade`,
-    areaId: area.id,
-    name: "Shade Route",
-    type: "shade",
-    points: shadePoints,
-    distance: getRouteDistance(shadePoints),
-    shadeCoverage: shadeRouteCoverage,
-    sunExposure: 100 - shadeRouteCoverage,
-    shadePointCount: shadeStops.length,
-    shadePathCount: countStopsByType(shadeStops, "shade_path"),
-    shadeAreaCount: countStopsByType(shadeStops, "shade_area"),
-    walkPathCount: walkPlaces.length,
-  };
-
-  return [fastRoute, shadeRoute];
 }

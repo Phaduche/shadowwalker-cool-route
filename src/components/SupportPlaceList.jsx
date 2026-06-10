@@ -1,6 +1,6 @@
 import { getPlaceTypeLabel } from "../utils/coolRouteScore";
 
-function SupportPlaceList({ places, isUsingFallback }) {
+function SupportPlaceList({ places }) {
   return (
     <section className="support-panel">
       <div className="section-title-row">
@@ -9,9 +9,7 @@ function SupportPlaceList({ places, isUsingFallback }) {
           <h2>Support places near the route</h2>
         </div>
 
-        <span className={isUsingFallback ? "source-tag fallback" : "source-tag"}>
-          {isUsingFallback ? "Fallback data" : "OpenStreetMap"}
-        </span>
+        <span className="source-tag">OpenStreetMap</span>
       </div>
 
       <p className="support-description">

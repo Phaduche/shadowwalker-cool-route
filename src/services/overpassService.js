@@ -7,26 +7,19 @@ import {
 function buildOverpassQuery(bbox) {
   const { south, west, north, east } = bbox;
 
-  // The route should be shade-first, but still walkable.
-  // So I load pedestrian path data together with shade-related map data.
+  // 여기서는 주변 정보만 가져온다. 실제 걷는 길은 routingService가 따로 책임진다.
   return `
     [out:json][timeout:15];
     (
-      nwr["highway"="footway"](${south},${west},${north},${east});
-      nwr["highway"="pedestrian"](${south},${west},${north},${east});
-      nwr["highway"="path"](${south},${west},${north},${east});
-      nwr["footway"="sidewalk"](${south},${west},${north},${east});
-      nwr["sidewalk"](${south},${west},${north},${east});
-
       nwr["natural"="tree_row"](${south},${west},${north},${east});
       nwr["natural"="tree"](${south},${west},${north},${east});
       nwr["natural"="wood"](${south},${west},${north},${east});
       nwr["landuse"="forest"](${south},${west},${north},${east});
+      nwr["landuse"="grass"](${south},${west},${north},${east});
       nwr["leisure"="park"](${south},${west},${north},${east});
-      nwr["tree_lined"="yes"](${south},${west},${north},${east});
-      nwr["covered"="yes"](${south},${west},${north},${east});
-      nwr["covered"="arcade"](${south},${west},${north},${east});
-      nwr["covered"="colonnade"](${south},${west},${north},${east});
+      nwr["leisure"="garden"](${south},${west},${north},${east});
+      nwr["tree_lined"](${south},${west},${north},${east});
+      nwr["covered"](${south},${west},${north},${east});
 
       nwr["amenity"="shelter"](${south},${west},${north},${east});
       nwr["shop"="convenience"](${south},${west},${north},${east});

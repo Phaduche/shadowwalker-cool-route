@@ -3,10 +3,8 @@ export function classifyPlace(tags = {}) {
   // First, we separate walkable paths from shade data so the route can stay close to sidewalks or pedestrian paths.
 
   if (
-    tags.covered === "yes" ||
-    tags.covered === "arcade" ||
-    tags.covered === "colonnade" ||
-    tags.tree_lined === "yes" ||
+    Boolean(tags.covered) ||
+    Boolean(tags.tree_lined) ||
     tags.natural === "tree_row"
   ) {
     return "shade_path";
@@ -28,7 +26,9 @@ export function classifyPlace(tags = {}) {
   if (
     tags.natural === "tree" ||
     tags.leisure === "park" ||
+    tags.leisure === "garden" ||
     tags.landuse === "forest" ||
+    tags.landuse === "grass" ||
     tags.natural === "wood"
   ) {
     return "shade_area";

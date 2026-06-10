@@ -47,7 +47,7 @@ function getRouteStyle(routeType) {
   };
 }
 
-function CoolRouteMap({ area, routes, shadePlaces, supportPlaces }) {
+function CoolRouteMap({ area, routes, shadePlaces, supportPlaces, routeError }) {
   const fastRoute = routes.find((route) => route.type === "fast");
   const shadeRoute = routes.find((route) => route.type === "shade");
 
@@ -59,12 +59,14 @@ function CoolRouteMap({ area, routes, shadePlaces, supportPlaces }) {
           <h2>Shade-following route</h2>
         </div>
 
-        <span className="source-tag">OpenStreetMap</span>
+        <span className="source-tag">Walking route</span>
       </div>
 
       <p className="map-description">
-        The green route follows shade-related map data, while the red dashed route shows a direct baseline.
+        The route line uses walking-route geometry. Shade and support map data are only used as nearby context.
       </p>
+
+      {routeError && <p className="route-error">{routeError}</p>}
 
       <MapContainer
         key={area.id}
@@ -145,8 +147,8 @@ function CoolRouteMap({ area, routes, shadePlaces, supportPlaces }) {
 
       <div className="map-legend">
         <span>Green line: Shade Route</span>
-        <span>Red dashed line: Direct baseline</span>
-        <span>Green markers: Shade data</span>
+        <span>Red dashed line: Fast walking route</span>
+        <span>Green markers: Shade context</span>
         <span>Support markers: Water, cooling, transit, shelter</span>
       </div>
     </section>
