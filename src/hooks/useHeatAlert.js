@@ -19,21 +19,41 @@ export default function useHeatAlert() {
     }
   }
 
-const triggerMockAlert = (mockTemp) => {
-    setTemp(mockTemp)
-    
-    if (mockTemp >= 36) {
-      setStatus("Very Hot")
-      notify("Heat Alert [Demo]", `Currently ${mockTemp}°C - avoid going out!`)
-    } else if (mockTemp >= 33) {
-      setStatus("Heat Wave Warning")
-      notify("Heat Wave Warning [Demo]", `Currently ${mockTemp}°C - stay hydrated!`)
+  // official government guidelines
+  const getAlertConfig = (currentTemp) => {
+    if (currentTemp >= 38) {
+      return {
+        status: "EXTREME DANGER",
+        message: `Currently ${currentTemp}°C - STOP all outdoor activities immediately. Move indoors to an air-conditioned environment. Heatstroke risk is critical.`
+      }
+    } else if (currentTemp >= 35) {
+      return {
+        status: "DANGER",
+        message: `Currently ${currentTemp}°C - Limit outdoor activities. Take a 15-minute rest in the shade every 45 minutes. Hydrate immediately.`
+      }
+    } else if (currentTemp >= 31) {
+      return {
+        status: "EXTRA CAUTION",
+        message: `Currently ${currentTemp}°C - Prolonged exposure can lead to heat cramps. Drink plenty of water and wear sun protection.`
+      }
     } else {
-      setStatus("Normal")
-      notify("Weather Updated [Demo]", `Currently ${mockTemp}°C - Have a nice day!`)
+      return {
+        status: "Normal",
+        message: `Currently ${currentTemp}°C - Have a nice day! Stay hydrated and use cool shade routes for walking.`
+      }
     }
   }
 
+  // demo button for testing
+  const triggerMockAlert = (mockTemp) => {
+    setTemp(mockTemp)
+    const config = getAlertConfig(mockTemp)
+    
+    setStatus(config.status)
+    notify(`[${config.status}] Heat Alert (Demo)`, config.message)
+  }
+
+  // load weather info
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const lat = pos.coords.latitude
@@ -44,25 +64,15 @@ const triggerMockAlert = (mockTemp) => {
 
       setTemp(t)
 
-      // temp status
-      if (t >= 36) {
-        setStatus("Very Hot")
-        notify("Heat Alert", `currently ${t}°C - avoid going out`)
-      } 
-      else if (t >= 33) {
-        setStatus("Heat Wave Warning")
-        notify("Heat Wave Warning", `currently ${t}°C`)
-      } 
-      else {
-        setStatus("Normal")
-      }
+      const config = getAlertConfig(t)
+      setStatus(config.status)
 
       // alarm daily
       const today = new Date().toDateString()
       const last = localStorage.getItem("lastAlert")
 
       if (last !== today) {
-        notify("Today's Weather Summary", `currently ${t}°C`)
+        notify(`Today's Weather Summary (${t}°C)`, `Current Condition: ${config.message}`)
         localStorage.setItem("lastAlert", today)
       }
     })
