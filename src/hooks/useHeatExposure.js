@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { tempShelters } from "../data/mockShelters";
+import { fetchRealShelters } from "../data/shelterData";
 
 // tis for calculating distances (now inside hook, no utils needed)
 function getDistanceInMeters(lat1, lon1, lat2, lon2) {
@@ -21,12 +21,44 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
 export function useHeatExposure(currentLat, currentLng) {
   const [seconds, setSeconds] = useState(0); // time passed(seconds)
   const [isOutdoor, setIsOutdoor] = useState(true); // user status (outdoor/indoor)
+const [realShelters, setRealShelters] = useState([]); // shelters
+
+// getting shelter infos
+  useEffect(() => {
+    if (!currentLat || !currentLng) return;
+
+    async function loadRealShelters() {
+      const data = await fetchRealShelters(currentLat, currentLng);
+      setRealShelters(data);
+    }
+    loadRealShelters();
+  }, [currentLat, currentLng]);
+
+  // fucion to get closest shelter info for notification
+  const getClosestShelterMessage = () => {
+    if (!realShelters || realShelters.length === 0) {
+      return "\nThere are no nearby shelters found in the data. Please stay safe and find shade or a cool place nearby!";
+    }
+
+    // calculate distance to each shelter
+    const placesWithDistance = realShelters.map((shelter) => {
+      const distance = getDistanceInMeters(currentLat, currentLng, shelter.lat, shelter.lng);
+      return { ...shelter, calculatedDistance: distance };
+    });
+
+    // sort nearest one
+    placesWithDistance.sort((a, b) => a.calculatedDistance - b.calculatedDistance);
+    const closest = placesWithDistance[0];
+
+    return `\nclosest shelter: ${closest.name} (${closest.calculatedDistance}m)`;
+  };
 
 // tis for testing without waiting ;)
 const triggerTestNotification = () => {
   if (Notification.permission === "granted") {
+    const shelterMsg = getClosestShelterMessage();
     new Notification("Test Alert", {
-      body: "This is a demo notification for testing (1-hour alert simulation).",
+      body: `This is a demo notification for testing (1-hour alert simulation).${shelterMsg}`,
     });
   } else {
     console.log("Notification permission not granted");
@@ -42,24 +74,22 @@ const triggerTestNotification = () => {
 
   // calculate distance whenever user moves
   useEffect(() => {
+    if (!realShelters || realShelters.length === 0) {
+      setIsOutdoor(true);
+      return;
+    }
+
     let isInside = false;
-
-    tempShelters.forEach((shelter) => {
-      const distance = getDistanceInMeters(
-        currentLat,
-        currentLng,
-        shelter.lat,
-        shelter.lng
-      );
-
-      // for now ive set inside as being within 15 meters of a shelter. could chage later (demo logic)
+    realShelters.forEach((shelter) => {
+      const distance = getDistanceInMeters(currentLat, currentLng, shelter.lat, shelter.lng);
       if (distance <= 15) {
         isInside = true;
       }
     });
 
     setIsOutdoor(!isInside);
-  }, [currentLat, currentLng]);
+  }, [currentLat, currentLng, realShelters]);
+
 
   // timer logic here :)
   useEffect(() => {
@@ -76,8 +106,9 @@ const triggerTestNotification = () => {
             next % 3600 === 0 &&
             Notification.permission === "granted"
           ) {
+            const shelterMsg = getClosestShelterMessage();
             new Notification("Time for water and rest!", {
-              body: `You've been exposed to heat for ${currentHour} hour(s). Take a break in the shade!`,
+              body: `You've been exposed to heat for ${currentHour} hour(s). Take a break in the shade!${shelterMsg}`,
             });
           }
 
@@ -89,7 +120,7 @@ const triggerTestNotification = () => {
     }
 
     return () => clearInterval(timer);
-  }, [isOutdoor]);
+  }, [isOutdoor, realShelters]);
 
   return {
     seconds,

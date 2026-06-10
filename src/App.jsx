@@ -1,11 +1,10 @@
 import { useState } from "react";
 import "./App.css";
-
-// 훅 가져오기
+//hooks
 import useHeatAlert from "./hooks/useHeatAlert";
 import useCoolRoute from "./hooks/useCoolRoute";
 
-// 컴포넌트 가져오기
+// components
 import HomePanel from "./components/HomePanel";
 import HeatSafetyGuide from "./components/HeatSafetyGuide";
 import AreaSelector from "./components/AreaSelector";
@@ -17,14 +16,12 @@ import { demoAreas } from "./data/demoAreas";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("main");
-
-  //  커스텀 훅으로 로직 깔끔하게 분리 완료!
   const { temp, status, triggerMockAlert } = useHeatAlert();
   const routeProps = useCoolRoute(currentPage);
 
   return (
     <div className="app-shell">
-      {/* 홈 페이지 구역 */}
+      {/* main page area */}
       {currentPage === "main" && (
         <HomePanel
           temp={temp}
@@ -38,14 +35,14 @@ function App() {
         />
       )}
 
-      {/* 대응수칙 안내 페이지 구역 */}
+      {/* heat safety guide page */}
       {currentPage === "guide" && (
         <main className="home-page">
           <HeatSafetyGuide onBack={() => setCurrentPage("main")} />
         </main>
       )}
 
-      {/* 그늘 지도 서비스 구역 */}
+      {/* cool route page */}
       {currentPage === "route" && (
         <main className="route-app">
           <header className="route-app-bar">
